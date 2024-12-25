@@ -1,24 +1,32 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { updateUserFailure , updateUserSuccess , updateUserStart } from "../redux/user/userSlice";
+import { updateUserFailure, updateUserSuccess, updateUserStart, deleteUserFailure, deleteUserStart, deleteUserSuccess } from "../redux/user/userSlice";
 import { useDispatch } from "react-redux";
 
 export default function Profile() {
   const fileRef = useRef(null);
-  const { currentUser,loading,error } = useSelector((state) => state.user); // Access current user
+  const { currentUser, loading, error } = useSelector((state) => state.user); // Access current user
+  const defaultImage = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyZkgPExp3GvoGr01uTL2X32Z83V2vd8P2FQ&s";
   
-  const [avatar, setAvatar] = useState(currentUser?.avatar || ""); // Temporary avatar state  
+  const [avatar, setAvatar] = useState(currentUser?.avatar || defaultImage); // Temporary avatar state
   const [successMessage, setSuccessMessage] = useState(""); // Success message
-  const [formData, setFormData]= useState("");
-  const dispatch= useDispatch();
-  const [updateSuccess,setUpdateSuccess]= useState("false");
+  const [formData, setFormData] = useState({});
+  const [updateSuccess, setUpdateSuccess] = useState(false); // Change to boolean
+  
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    // Make sure the avatar is set correctly when currentUser changes
+    if (currentUser?.avatar) {
+      setAvatar(currentUser.avatar);
+    }
+  }, [currentUser]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    setLoading(true);
-    setSuccessMessage(""); // Reset success message
     
+    setSuccessMessage(""); // Reset success message
 
     const data = new FormData();
     data.append("file", file);
@@ -39,7 +47,7 @@ export default function Profile() {
       console.log("Uploaded Image URL:", uploadedImage.url);
 
       // Update the avatar state with the new URL
-      setAvatar(uploadedImage.url);
+      setAvatar(uploadedImage.url || defaultImage);
 
       // (Optional) Send the new avatar URL to the backend
       await fetch("/api/update-avatar", {
@@ -59,43 +67,58 @@ export default function Profile() {
       console.error("Error uploading image:", error);
     } finally {
       setLoading(false);
-
     }
   };
-  
-  const handleChange =(e)=>{
-    setFormData({...formData ,[e.target.id]:e.target.value});
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  const handleSubmit=async (e)=>{
-    e.preventDefault(); //Yeh tera page reload hone se rokega
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent page reload
 
     try {
       dispatch(updateUserStart());
-      const res= await fetch(`/api/user/update/${currentUser._id}`,{
-        method:'POST',
-        headers:{
-           'Content-Type':'application/json',
+      const res = await fetch(`/api/user/update/${currentUser._id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        body:JSON.stringify(formData),
+        body: JSON.stringify(formData),
       });
-      const data= await res.json();
-      if(data.success===false){
+      const data = await res.json();
+      if (data.success === false) {
         dispatch(updateUserFailure(data.message));
         return;
       }
       dispatch(updateUserSuccess(data));
       setUpdateSuccess(true);
-     /// THis will hide the message after 5sec
+      // Hide success message after 5 seconds
       setTimeout(() => {
         setUpdateSuccess(false);
-      }, 5000); 
-      
+      }, 5000);
     } catch (error) {
       dispatch(updateUserFailure(error.message));
     }
-    
-  }
+  };
+
+  const handleDeleteUser = async () => {
+    try {
+      dispatch(deleteUserStart());
+      const res = await fetch(`/api/user/delete/${currentUser._id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success === false) {
+        dispatch(deleteUserFailure(data.message));
+        return;
+      }
+      dispatch(deleteUserSuccess(data));
+    } catch (error) {
+      dispatch(deleteUserFailure(error.message));
+    }
+  };
+
   return (
     <div className="p-3 max-w-lg mx-auto">
       <h1 className="text-3xl font-semibold text-center my-7">Profile</h1>
@@ -104,7 +127,6 @@ export default function Profile() {
         <input
           onChange={handleFileUpload}
           type="file"
-         
           ref={fileRef}
           hidden
           accept="image/*"
@@ -113,7 +135,7 @@ export default function Profile() {
         {/* Profile Image */}
         <img
           onClick={() => fileRef.current.click()}
-          src={avatar || "/default-avatar.png"} // Use local state to show updated avatar
+          src={avatar} // Use the local state to show the updated avatar
           alt="profile"
           className="rounded-full h-24 w-24 object-cover cursor-pointer self-center mt-2"
         />
@@ -131,6 +153,7 @@ export default function Profile() {
           className="border p-3 rounded-lg"
           defaultValue={currentUser.username}
           onChange={handleChange}
+          value={formData.username}
         />
         <input
           type="email"
@@ -139,6 +162,7 @@ export default function Profile() {
           className="border p-3 rounded-lg"
           defaultValue={currentUser.email}
           onChange={handleChange}
+          value={formData.email}
         />
         <input
           type="password"
@@ -149,7 +173,7 @@ export default function Profile() {
         />
 
         {/* Update Button */}
-        <button 
+        <button
           className="bg bg-slate-700 text-white rounded-lg p-3 uppercase hover:opacity-95 disabled:opacity-80"
           disabled={loading} // Disable while loading
         >
@@ -159,13 +183,14 @@ export default function Profile() {
 
       {/* Footer Actions */}
       <div className="flex justify-between mt-5">
-        <span className="text-red-700 cursor-pointer">Delete Account</span>
+        <span onClick={handleDeleteUser} className="text-red-700 cursor-pointer">Delete Account</span>
         <span className="text-red-700 cursor-pointer">Sign Out</span>
-
-       
       </div>
-      <p className="text-green-700 mt-5">{updateSuccess ? 'User Updated Sucessfully': ""} </p>
+
+      {/* Success Message after Update */}
+      {updateSuccess && (
+        <p className="text-green-700 mt-5">User Updated Successfully</p>
+      )}
     </div>
-    
   );
 }
