@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { updateUserFailure, updateUserSuccess, updateUserStart, deleteUserFailure, deleteUserStart, deleteUserSuccess } from "../redux/user/userSlice";
+import { updateUserFailure, updateUserSuccess, updateUserStart, deleteUserFailure, deleteUserStart, deleteUserSuccess, signOutUserStart, signOutUserFailure, signOutUserSuccess  } from "../redux/user/userSlice";
 import { useDispatch } from "react-redux";
 
 export default function Profile() {
@@ -118,7 +118,24 @@ export default function Profile() {
       dispatch(deleteUserFailure(error.message));
     }
   };
-
+  
+  const handleSignOut = async () => {
+    try {
+      dispatch(signOutUserStart()); // Dispatch sign-out start action
+      const res = await fetch('/api/auth/signout');
+      const data = await res.json();
+  
+      if (data.success === false) {
+        dispatch(signOutUserFailure(data.message)); // Dispatch failure if the response is not successful
+        return;
+      }
+  
+      dispatch(signOutUserSuccess(data)); // Dispatch success action
+    } catch (error) {
+      dispatch(signOutUserFailure(error.message)); // Dispatch failure if an error occurs
+    }
+  };
+  
   return (
     <div className="p-3 max-w-lg mx-auto">
       <h1 className="text-3xl font-semibold text-center my-7">Profile</h1>
@@ -184,7 +201,7 @@ export default function Profile() {
       {/* Footer Actions */}
       <div className="flex justify-between mt-5">
         <span onClick={handleDeleteUser} className="text-red-700 cursor-pointer">Delete Account</span>
-        <span className="text-red-700 cursor-pointer">Sign Out</span>
+        <span onClick={handleSignOut} className="text-red-700 cursor-pointer">Sign Out</span>
       </div>
 
       {/* Success Message after Update */}
