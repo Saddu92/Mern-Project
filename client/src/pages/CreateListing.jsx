@@ -13,7 +13,7 @@ export default function CreateListing() {
     name: "",
     description: "",
     address: "",
-    type: "rent",
+    type: "",
     bedrooms: 1,
     bathrooms: 1,
     regularPrice: 50,
@@ -22,13 +22,13 @@ export default function CreateListing() {
     parking: false,
     furnished: false,
   });
-  console.log(formData);
+
 
   const handleChange = (e) => {
-    if (e.target.id === "sale " || e.target.id === "rent") {
+    if (e.target.id ==="sale" || e.target.id == "rent") {
       setFormData({
         ...formData,
-        type: e.target.id,
+        type: e.target.id,  
       });
     }
 
@@ -195,7 +195,7 @@ export default function CreateListing() {
                 id="sale"
                 className="w-5"
                 onChange={handleChange}
-                checked={formData.type === "sale"}
+                checked={formData.type ==="sale"}
               />
               <span>Sell</span>
             </div>
@@ -205,7 +205,7 @@ export default function CreateListing() {
                 id="rent"
                 className="w-5"
                 onChange={handleChange}
-                checked={formData.type === "rent"}
+                checked={formData.type ==="rent"}
               />
               <span>Rent</span>
             </div>
@@ -244,7 +244,7 @@ export default function CreateListing() {
             <div className=" flex items-center gap-2">
               <input
                 type="number"
-                id="bedroom"
+                id="bedrooms"
                 min="1"
                 max="10"
                 required
@@ -257,7 +257,7 @@ export default function CreateListing() {
             <div className=" flex items-center gap-2">
               <input
                 type="number"
-                id="bathroom"
+                id="bathrooms"
                 min="1"
                 max="10"
                 required
@@ -288,7 +288,7 @@ export default function CreateListing() {
                 <input
                   type="number"
                   id="discountPrice"
-                  min="50"
+                  min="0"
                   max="1000000"
                   required
                   className="p-3 border border-gray-300 rounded-lg"
